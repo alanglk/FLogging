@@ -1,0 +1,214 @@
+# ==============================================================================
+# @Project:     Flexible Logging Library (FLogging)
+# @Author:      https://github.com/alanglk
+# @Date:        11/06/2026
+# @Description: CMake configuration for the Flogging Lib
+# @Version:     1.0.0
+# ==============================================================================
+
+cmake_minimum_required(VERSION 3.15)
+
+project(FLogging
+    VERSION 1.0.0 
+    DESCRIPTION "Flexible Logging Library (FLogging)"
+    HOMEPAGE_URL "https://github.com/alanglk/FLogging"
+    LANGUAGES CXX
+)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+
+# --- Compilation out paths ---------------------------------------
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+
+# --- Building options --------------------------------------------
+option(FLOGGING_SHARED      "Build FLogging as a shared library" OFF)
+option(FLOGGING_F_PREFIX    "Require F_ prefix for logging macros to avoid collisions" OFF)
+option(ENABLE_QUILL         "Use Quill backend for maximum performance" OFF)
+option(ENABLE_RTMAPS        "Enable RTMaps support" OFF)
+
+
+# --- Installation Variables --------------------------------------
+# Install tree inside the build dir by default <build>/dist
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/dist" CACHE PATH "Install path" FORCE)
+endif()
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH "$ORIGIN" "$ORIGIN/../lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+set(CMAKE_SKIP_RPATH FALSE)
+set(CMAKE_MACOSX_RPATH FALSE)
+
+
+# --- Library Setup Variables -------------------------------------
+set(FLOGGING_TYPE STATIC)                # STATIC or SHARED
+set(FLOGGING_PUBLIC_LIBRARIES )          # Public FLOGGING dependencies (entt, glm)
+set(FLOGGING_PRIVATE_LIBRARIES )         # Private FLOGGING dependencies (no deps for now)
+set(FLOGGING_PUBLIC_COMPILE_DEFS )       # e.g. ENABLE_CUDA to compile CUDA RHI and tell lib linkers it is enabled
+set(FLOGGING_PRIVATE_COMPILE_DEFS )      # e.g. ENABLE_TESTING compile definition to compile tests source sections
+
+if(FLOGGING_SHARED)
+    set(FLOGGING_TYPE SHARED)
+endif()
+if(FLOGGING_F_PREFIX)
+    list(APPEND FLOGGING_PUBLIC_COMPILE_DEFS FLOGGING_USE_F_PREFIX)
+endif()
+
+
+# --- Enable Testing (Fetch GTest) --------------------------------
+if(ENABLE_TESTING)
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/5376968f6948923e2411081fd9372e71a59d8e77.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)            # To disable GMock building
+    set(GTEST_DONT_DEFINE_FOO 0 CACHE BOOL "" FORCE)    # To rename every GTest macro by adding the GTEST_* prefix
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)  # For Windows: Prevent overriding the parent project's compiler/linker settings
+    FetchContent_MakeAvailable(googletest)
+    
+    enable_testing()
+
+    list(APPEND FLOGGING_PRIVATE_COMPILE_DEFS ENABLE_TESTING)
+endif()
+
+
+# --- Library Dependencies ----------------------------------------
+## Boost Support (Boost.Asio in NetworkUDPSink)
+find_package(Boost REQUIRED)
+list(APPEND FLOGGING_PRIVATE_LIBRARIES Boost::headers)
+
+## Quill: located in third_party/quill 
+if (ENABLE_QUILL)
+    if(NOT TARGET quill::quill)
+        set(QUILL_DIR "${CMAKE_SOURCE_DIR}/third_party/quill")
+        if(EXISTS "${QUILL_DIR}/CMakeLists.txt")
+            add_subdirectory("${QUILL_DIR}" "${CMAKE_BINARY_DIR}/quill" EXCLUDE_FROM_ALL)
+            set_target_properties(quill PROPERTIES POSITION_INDEPENDENT_CODE ON)
+            list(APPEND FLOGGING_PRIVATE_LIBRARIES quill::quill)
+            list(APPEND FLOGGING_PUBLIC_COMPILE_DEFS ENABLE_QUILL)
+        else()
+            message(WARNING "Quill source missing. Run: git submodule update --init --recursive")
+        endif()
+    endif()
+endif()
+
+
+# --- Library Sources ---------------------------------------------
+set(FLOGGING_SOURCES
+    src/FLogging.cpp
+)
+
+
+# --- Library Target ----------------------------------------------
+add_library(flogging ${FLOGGING_TYPE} ${FLOGGING_SOURCES})
+set_target_properties(flogging PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+include(GenerateExportHeader)
+generate_export_header(flogging
+    EXPORT_MACRO_NAME FLOGGING_API
+    EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/include/FLogging/flogging_export.h"
+)
+target_include_directories(flogging 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+)
+target_compile_definitions(flogging 
+    PUBLIC  ${FLOGGING_PUBLIC_COMPILE_DEFS}
+    PRIVATE ${FLOGGING_PRIVATE_COMPILE_DEFS}
+)
+target_link_libraries(flogging 
+    PUBLIC  ${FLOGGING_PUBLIC_LIBRARIES}
+    PRIVATE ${FLOGGING_PRIVATE_LIBRARIES}
+)
+
+
+# --- Test Executable Targets -------------------------------------
+if(ENABLE_TESTING)
+    # collect all test C++ source files in the test/ folder
+    file(GLOB_RECURSE FLOGGING_TEST_SOURCES "test/*.cpp" "test/*.cc")
+    if(FLOGGING_TEST_SOURCES)
+
+        foreach(test_file IN LISTS FLOGGING_TEST_SOURCES)
+            file(RELATIVE_PATH rel_path ${CMAKE_CURRENT_SOURCE_DIR} ${test_file})
+            message(STATUS "Found test source file: ${rel_path}")
+        endforeach()
+
+        add_executable(flogging_tests ${FLOGGING_TEST_SOURCES})
+        target_link_libraries(flogging_tests 
+            PRIVATE 
+                flogging
+                GTest::gtest_main
+        )
+        
+        # Discover and add tests to ctest automatically
+        include(GoogleTest)
+        gtest_discover_tests(flogging_tests)
+    else()
+        message(WARNING "Testing is enabled, but no test source files were found in 'test/'.")
+    endif()
+endif()
+
+
+
+# --- Install -----------------------------------------------------
+install(
+  TARGETS flogging
+  EXPORT FLoggingTargets
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  INCLUDES DESTINATION include
+)
+
+# Only install quill target if it was built
+if(ENABLE_QUILL AND TARGET quill::quill)
+    install(TARGETS quill EXPORT FLoggingTargets 
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib)
+endif()
+
+install(
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+  DESTINATION include
+)
+install(
+  DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
+  DESTINATION include
+)
+if(ENABLE_QUILL AND TARGET quill::quill)
+  install(
+    DIRECTORY ${QUILL_DIR}/include/quill
+    DESTINATION include
+  )
+endif()
+
+# Export CMake targets
+install(
+  EXPORT FLoggingTargets 
+  FILE  FLoggingTargets.cmake
+  NAMESPACE  FLogging::
+  DESTINATION lib/cmake/FLogging
+)
+
+# Generate Config file
+include(CMakePackageConfigHelpers)
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfig.cmake "
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+include(\"\${CMAKE_CURRENT_LIST_DIR}/FLoggingTargets.cmake\")
+")
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfig.cmake
+    DESTINATION lib/cmake/FLogging
+)
