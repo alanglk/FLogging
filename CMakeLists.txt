@@ -26,10 +26,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 
 # --- Building options --------------------------------------------
-option(FLOGGING_SHARED      "Build FLogging as a shared library" OFF)
-option(FLOGGING_F_PREFIX    "Require F_ prefix for logging macros to avoid collisions" OFF)
-option(ENABLE_QUILL         "Use Quill backend for maximum performance" OFF)
-option(ENABLE_RTMAPS        "Enable RTMaps support" OFF)
+option(FLOGGING_SHARED          "Build FLogging as a shared library" OFF)
+option(FLOGGING_F_PREFIX        "Require F_ prefix for logging macros to avoid collisions" OFF)
+option(FLOGGING_QUILL_BACKEND   "Use Quill backend for maximum performance" OFF)
+option(FLOGGING_TESTING         "Build tests" OFF)
 
 
 # --- Installation Variables --------------------------------------
@@ -48,7 +48,7 @@ set(CMAKE_MACOSX_RPATH FALSE)
 set(FLOGGING_TYPE STATIC)                # STATIC or SHARED
 set(FLOGGING_PUBLIC_LIBRARIES )          # Public FLOGGING dependencies (entt, glm)
 set(FLOGGING_PRIVATE_LIBRARIES )         # Private FLOGGING dependencies (no deps for now)
-set(FLOGGING_PUBLIC_COMPILE_DEFS )       # e.g. ENABLE_CUDA to compile CUDA RHI and tell lib linkers it is enabled
+set(FLOGGING_PUBLIC_COMPILE_DEFS )       
 set(FLOGGING_PRIVATE_COMPILE_DEFS )      # e.g. ENABLE_TESTING compile definition to compile tests source sections
 
 if(FLOGGING_SHARED)
@@ -60,7 +60,7 @@ endif()
 
 
 # --- Enable Testing (Fetch GTest) --------------------------------
-if(ENABLE_TESTING)
+if(FLOGGING_TESTING)
     include(FetchContent)
     FetchContent_Declare(
         googletest
@@ -84,7 +84,7 @@ find_package(Boost REQUIRED)
 list(APPEND FLOGGING_PRIVATE_LIBRARIES Boost::headers)
 
 ## Quill: located in third_party/quill 
-if (ENABLE_QUILL)
+if (FLOGGING_QUILL_BACKEND)
     if(NOT TARGET quill::quill)
         set(QUILL_DIR "${CMAKE_SOURCE_DIR}/third_party/quill")
         if(EXISTS "${QUILL_DIR}/CMakeLists.txt")
@@ -130,10 +130,11 @@ target_link_libraries(flogging
     PUBLIC  ${FLOGGING_PUBLIC_LIBRARIES}
     PRIVATE ${FLOGGING_PRIVATE_LIBRARIES}
 )
+add_library(FLogging::flogging ALIAS flogging)
 
 
 # --- Test Executable Targets -------------------------------------
-if(ENABLE_TESTING)
+if(FLOGGING_TESTING)
     # collect all test C++ source files in the test/ folder
     file(GLOB_RECURSE FLOGGING_TEST_SOURCES "test/*.cpp" "test/*.cc")
     if(FLOGGING_TEST_SOURCES)
@@ -171,7 +172,7 @@ install(
 )
 
 # Only install quill target if it was built
-if(ENABLE_QUILL AND TARGET quill::quill)
+if(FLOGGING_QUILL_BACKEND AND TARGET quill::quill)
     install(TARGETS quill EXPORT FLoggingTargets 
             RUNTIME DESTINATION bin
             LIBRARY DESTINATION lib
@@ -186,7 +187,7 @@ install(
   DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
   DESTINATION include
 )
-if(ENABLE_QUILL AND TARGET quill::quill)
+if(FLOGGING_QUILL_BACKEND AND TARGET quill::quill)
   install(
     DIRECTORY ${QUILL_DIR}/include/quill
     DESTINATION include
