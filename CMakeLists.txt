@@ -89,9 +89,14 @@ endif()
 
 
 # --- Library Dependencies ----------------------------------------
+## FMT (formating C++17)
+find_package(fmt REQUIRED)
+list(APPEND FLOGGING_PUBLIC_LIBRARIES Boost::headers)
+
 ## Boost Support (Boost.Asio in NetworkUDPSink)
 find_package(Boost REQUIRED)
-list(APPEND FLOGGING_PRIVATE_LIBRARIES Boost::headers)
+list(APPEND FLOGGING_PRIVATE_LIBRARIES fmt::fmt)
+
 
 ## Quill: located in third_party/quill 
 if (FLOGGING_QUILL_BACKEND)
@@ -100,7 +105,7 @@ if (FLOGGING_QUILL_BACKEND)
         if(EXISTS "${QUILL_DIR}/CMakeLists.txt")
             add_subdirectory("${QUILL_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/quill" EXCLUDE_FROM_ALL)
             set_target_properties(quill PROPERTIES POSITION_INDEPENDENT_CODE ON)
-            list(APPEND FLOGGING_PRIVATE_LIBRARIES quill::quill)
+            list(APPEND FLOGGING_PUBLIC_LIBRARIES quill::quill)
             list(APPEND FLOGGING_PUBLIC_COMPILE_DEFS ENABLE_QUILL)
         else()
             message(WARNING "Quill source missing. Run: git submodule update --init --recursive")

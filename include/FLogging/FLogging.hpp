@@ -69,8 +69,7 @@ namespace flogging {
 
 // --- Internal Macro Implementations ------------------------------
 
-#include <format>
-
+#include <fmt/core.h>
 #ifdef ENABLE_QUILL
     #define QUILL_DISABLE_NON_PREFIXED_MACROS
     #include <quill/Frontend.h>
@@ -81,75 +80,75 @@ namespace flogging {
         FLOGGING_API quill::Logger* get_metrics_logger();
     }
 
-    #define FLOGGING_INTERNAL_INFO(fmt, ...) do { \
+    #define FLOGGING_INTERNAL_INFO(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_INFO(flogging::get_logger(), fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_INFO(flogging::get_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_active_log_level <= flogging::LogLevel::Info) { \
-            flogging::DispatchLog(flogging::LogLevel::Info, std::format("[INFO] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Info, fmt::format("[INFO] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
-    #define FLOGGING_INTERNAL_DEBUG(fmt, ...) do { \
+    #define FLOGGING_INTERNAL_DEBUG(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_DEBUG(flogging::get_logger(), fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_DEBUG(flogging::get_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_active_log_level <= flogging::LogLevel::Debug) { \
-            flogging::DispatchLog(flogging::LogLevel::Debug, std::format("[DEBUG] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Debug, fmt::format("[DEBUG] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
-    #define FLOGGING_INTERNAL_WARN(fmt, ...) do { \
+    #define FLOGGING_INTERNAL_WARN(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_ERROR(flogging::get_logger(), fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_WARNING(flogging::get_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_active_log_level <= flogging::LogLevel::Warn) { \
-            flogging::DispatchLog(flogging::LogLevel::Warn, std::format("[WARN] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Warn, fmt::format("[WARN] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
-    #define FLOGGING_INTERNAL_ERROR(fmt, ...) do { \
+    #define FLOGGING_INTERNAL_ERROR(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_ERROR(flogging::get_logger(), fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_ERROR(flogging::get_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_active_log_level <= flogging::LogLevel::Error) { \
-            flogging::DispatchLog(flogging::LogLevel::Error, std::format("[ERROR] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Error, fmt::format("[ERROR] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
-    #define FLOGGING_INTERNAL_METRIC(fmt, ...) do { \
+    #define FLOGGING_INTERNAL_METRIC(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_INFO(flogging::get_metrics_logger(), fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_INFO(flogging::get_metrics_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_metrics_log_level <= flogging::LogLevel::Info) { \
-            flogging::DispatchMetric(std::format("[METRIC] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchMetric(fmt::format("[METRIC] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
 #else
-    // std::format implementations
-    #define FLOGGING_INTERNAL_INFO(fmt, ...) do { \
+    // fmt::format implementations
+    #define FLOGGING_INTERNAL_INFO(msg_fmt, ...) do { \
         if (flogging::g_active_log_level <= flogging::LogLevel::Info) { \
-            flogging::DispatchLog(flogging::LogLevel::Info, std::format("[INFO] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Info, fmt::format("[INFO] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
-    #define FLOGGING_INTERNAL_DEBUG(fmt, ...) do { \
+    #define FLOGGING_INTERNAL_DEBUG(msg_fmt, ...) do { \
         if (flogging::g_active_log_level <= flogging::LogLevel::Debug) { \
-            flogging::DispatchLog(flogging::LogLevel::Debug, std::format("[DEBUG] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Debug, fmt::format("[DEBUG] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
-    #define FLOGGING_INTERNAL_WARN(fmt, ...) do { \
+    #define FLOGGING_INTERNAL_WARN(msg_fmt, ...) do { \
         if (flogging::g_active_log_level <= flogging::LogLevel::Warn) { \
-            flogging::DispatchLog(flogging::LogLevel::Warn, std::format("[WARN] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Warn, fmt::format("[WARN] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
-    #define FLOGGING_INTERNAL_ERROR(fmt, ...) do { \
+    #define FLOGGING_INTERNAL_ERROR(msg_fmt, ...) do { \
         if (flogging::g_active_log_level <= flogging::LogLevel::Error) { \
-            flogging::DispatchLog(flogging::LogLevel::Error, std::format("[ERROR] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Error, fmt::format("[ERROR] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
-    #define FLOGGING_INTERNAL_METRIC(fmt, ...) do { \
+    #define FLOGGING_INTERNAL_METRIC(msg_fmt, ...) do { \
         if (flogging::g_metrics_log_level <= flogging::LogLevel::Info) { \
-            flogging::DispatchMetric(std::format("[METRIC] " fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchMetric(fmt::format("[METRIC] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
@@ -158,11 +157,15 @@ namespace flogging {
 
 // --- User Macros -------------------------------------------------
 #ifdef FLOGGING_USE_F_PREFIX
+    #define F_LOG_DEBUG(...)  FLOGGING_INTERNAL_DEBUG(__VA_ARGS__)
     #define F_LOG_INFO(...)   FLOGGING_INTERNAL_INFO(__VA_ARGS__)
+    #define F_LOG_WARN(...)   FLOGGING_INTERNAL_WARN(__VA_ARGS__)
     #define F_LOG_ERROR(...)  FLOGGING_INTERNAL_ERROR(__VA_ARGS__)
     #define F_LOG_METRIC(...) FLOGGING_INTERNAL_METRIC(__VA_ARGS__)
 #else
+    #define LOG_DEBUG(...)  FLOGGING_INTERNAL_DEBUG(__VA_ARGS__)
     #define LOG_INFO(...)   FLOGGING_INTERNAL_INFO(__VA_ARGS__)
+    #define LOG_WARN(...)   FLOGGING_INTERNAL_WARN(__VA_ARGS__)
     #define LOG_ERROR(...)  FLOGGING_INTERNAL_ERROR(__VA_ARGS__)
     #define LOG_METRIC(...) FLOGGING_INTERNAL_METRIC(__VA_ARGS__)
 #endif
