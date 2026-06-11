@@ -18,11 +18,18 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Check if FLogging is the main project or bundled via add_subdirectory
+set(FLOGGING_IS_MASTER_PROJECT OFF)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(FLOGGING_IS_MASTER_PROJECT ON)
+endif()
 
 # --- Compilation out paths ---------------------------------------
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+if(FLOGGING_IS_MASTER_PROJECT)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+endif()
 
 
 # --- Building options --------------------------------------------
@@ -33,10 +40,13 @@ option(FLOGGING_TESTING         "Build tests" OFF)
 
 
 # --- Installation Variables --------------------------------------
-# Install tree inside the build dir by default <build>/dist
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/dist" CACHE PATH "Install path" FORCE)
+if(FLOGGING_IS_MASTER_PROJECT)
+    # Install tree inside the build dir by default <build>/dist
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+      set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/dist" CACHE PATH "Install path" FORCE)
+    endif()
 endif()
+
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN" "$ORIGIN/../lib")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
@@ -86,9 +96,9 @@ list(APPEND FLOGGING_PRIVATE_LIBRARIES Boost::headers)
 ## Quill: located in third_party/quill 
 if (FLOGGING_QUILL_BACKEND)
     if(NOT TARGET quill::quill)
-        set(QUILL_DIR "${CMAKE_SOURCE_DIR}/third_party/quill")
+        set(QUILL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/quill")
         if(EXISTS "${QUILL_DIR}/CMakeLists.txt")
-            add_subdirectory("${QUILL_DIR}" "${CMAKE_BINARY_DIR}/quill" EXCLUDE_FROM_ALL)
+            add_subdirectory("${QUILL_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/quill" EXCLUDE_FROM_ALL)
             set_target_properties(quill PROPERTIES POSITION_INDEPENDENT_CODE ON)
             list(APPEND FLOGGING_PRIVATE_LIBRARIES quill::quill)
             list(APPEND FLOGGING_PUBLIC_COMPILE_DEFS ENABLE_QUILL)
@@ -207,6 +217,7 @@ include(CMakePackageConfigHelpers)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfig.cmake "
 include(CMakeFindDependencyMacro)
 find_dependency(Threads)
+find_dependency(Boost)
 include(\"\${CMAKE_CURRENT_LIST_DIR}/FLoggingTargets.cmake\")
 ")
 install(
