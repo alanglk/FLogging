@@ -33,7 +33,7 @@ endif()
 
 
 # --- Building options --------------------------------------------
-option(FLOGGING_SHARED          "Build FLogging as a shared library" OFF)
+option(FLOGGING_SHARED          "Build FLogging as a shared library" ON)
 option(FLOGGING_F_PREFIX        "Require F_ prefix for logging macros to avoid collisions" OFF)
 option(FLOGGING_QUILL_BACKEND   "Use Quill backend for maximum performance" OFF)
 option(FLOGGING_TESTING         "Build tests" OFF)
@@ -58,6 +58,7 @@ set(CMAKE_MACOSX_RPATH FALSE)
 set(FLOGGING_TYPE STATIC)                # STATIC or SHARED
 set(FLOGGING_PUBLIC_LIBRARIES )          # Public FLOGGING dependencies (entt, glm)
 set(FLOGGING_PRIVATE_LIBRARIES )         # Private FLOGGING dependencies (no deps for now)
+set(FLOGGING_PUBLIC_INCLUDE_DIRS )       # Public FLOGGING headers
 set(FLOGGING_PUBLIC_COMPILE_DEFS )       
 set(FLOGGING_PRIVATE_COMPILE_DEFS )      # e.g. ENABLE_TESTING compile definition to compile tests source sections
 
@@ -91,11 +92,11 @@ endif()
 # --- Library Dependencies ----------------------------------------
 ## FMT (formating C++17)
 find_package(fmt REQUIRED)
-list(APPEND FLOGGING_PUBLIC_LIBRARIES Boost::headers)
+list(APPEND FLOGGING_PUBLIC_LIBRARIES fmt::fmt)
 
 ## Boost Support (Boost.Asio in NetworkUDPSink)
 find_package(Boost REQUIRED)
-list(APPEND FLOGGING_PRIVATE_LIBRARIES fmt::fmt)
+list(APPEND FLOGGING_PRIVATE_LIBRARIES Boost::headers)
 
 
 ## Quill: located in third_party/quill 
@@ -103,14 +104,17 @@ if (FLOGGING_QUILL_BACKEND)
     if(NOT TARGET quill::quill)
         set(QUILL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/quill")
         if(EXISTS "${QUILL_DIR}/CMakeLists.txt")
+            set(QUILL_INSTALL OFF CACHE BOOL "" FORCE)
             add_subdirectory("${QUILL_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/quill" EXCLUDE_FROM_ALL)
             set_target_properties(quill PROPERTIES POSITION_INDEPENDENT_CODE ON)
             list(APPEND FLOGGING_PUBLIC_LIBRARIES quill::quill)
             list(APPEND FLOGGING_PUBLIC_COMPILE_DEFS ENABLE_QUILL)
+            list(APPEND FLOGGING_PUBLIC_INCLUDE_DIRS "${QUILL_DIR}/include")
         else()
             message(WARNING "Quill source missing. Run: git submodule update --init --recursive")
         endif()
     endif()
+    
 endif()
 
 
@@ -137,6 +141,10 @@ target_include_directories(flogging
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include
 )
+if(FLOGGING_PUBLIC_INCLUDE_DIRS)
+    target_include_directories(flogging PUBLIC $<BUILD_INTERFACE:${FLOGGING_PUBLIC_INCLUDE_DIRS}>)
+endif()
+
 target_compile_definitions(flogging 
     PUBLIC  ${FLOGGING_PUBLIC_COMPILE_DEFS}
     PRIVATE ${FLOGGING_PRIVATE_COMPILE_DEFS}
@@ -177,44 +185,36 @@ endif()
 
 
 # --- Install -----------------------------------------------------
+include(GNUInstallDirs)
+
 install(
   TARGETS flogging
   EXPORT FLoggingTargets
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  INCLUDES DESTINATION include
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-# Only install quill target if it was built
 if(FLOGGING_QUILL_BACKEND AND TARGET quill::quill)
     install(TARGETS quill EXPORT FLoggingTargets 
-            RUNTIME DESTINATION bin
-            LIBRARY DESTINATION lib
-            ARCHIVE DESTINATION lib)
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
-install(
-  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-  DESTINATION include
-)
-install(
-  DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
-  DESTINATION include
-)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
 if(FLOGGING_QUILL_BACKEND AND TARGET quill::quill)
-  install(
-    DIRECTORY ${QUILL_DIR}/include/quill
-    DESTINATION include
-  )
+  install(DIRECTORY ${QUILL_DIR}/include/quill DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
 
-# Export CMake targets
 install(
   EXPORT FLoggingTargets 
   FILE  FLoggingTargets.cmake
   NAMESPACE  FLogging::
-  DESTINATION lib/cmake/FLogging
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FLogging
 )
 
 # Generate Config file
@@ -222,10 +222,10 @@ include(CMakePackageConfigHelpers)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfig.cmake "
 include(CMakeFindDependencyMacro)
 find_dependency(Threads)
-find_dependency(Boost)
+find_dependency(fmt)
 include(\"\${CMAKE_CURRENT_LIST_DIR}/FLoggingTargets.cmake\")
 ")
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfig.cmake
-    DESTINATION lib/cmake/FLogging
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FLogging
 )

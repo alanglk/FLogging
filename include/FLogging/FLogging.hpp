@@ -66,9 +66,16 @@ namespace flogging {
 }
 
 
+// --- Prefix Injection --------------------------------------------
+// If the parent project defines a version and hash via CMake, bake it into the log.
+#if defined(FLOG_APP_VERSION) && defined(FLOG_APP_GIT_HASH)
+    #define FLOG_APP_PREFIX "[" FLOG_APP_VERSION "|" FLOG_APP_GIT_HASH "] "
+#else
+    #define FLOG_APP_PREFIX ""
+#endif
+
 
 // --- Internal Macro Implementations ------------------------------
-
 #include <fmt/core.h>
 #ifdef ENABLE_QUILL
     #define QUILL_DISABLE_NON_PREFIXED_MACROS
@@ -82,41 +89,41 @@ namespace flogging {
 
     #define FLOGGING_INTERNAL_INFO(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_INFO(flogging::get_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_INFO(flogging::get_logger(), FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_active_log_level <= flogging::LogLevel::Info) { \
-            flogging::DispatchLog(flogging::LogLevel::Info, fmt::format("[INFO] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Info, fmt::format("[INFO] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
     #define FLOGGING_INTERNAL_DEBUG(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_DEBUG(flogging::get_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_DEBUG(flogging::get_logger(), FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_active_log_level <= flogging::LogLevel::Debug) { \
-            flogging::DispatchLog(flogging::LogLevel::Debug, fmt::format("[DEBUG] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Debug, fmt::format("[DEBUG] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
     #define FLOGGING_INTERNAL_WARN(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_WARNING(flogging::get_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_WARNING(flogging::get_logger(), FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_active_log_level <= flogging::LogLevel::Warn) { \
-            flogging::DispatchLog(flogging::LogLevel::Warn, fmt::format("[WARN] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Warn, fmt::format("[WARN] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
     #define FLOGGING_INTERNAL_ERROR(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_ERROR(flogging::get_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_ERROR(flogging::get_logger(), FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_active_log_level <= flogging::LogLevel::Error) { \
-            flogging::DispatchLog(flogging::LogLevel::Error, fmt::format("[ERROR] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Error, fmt::format("[ERROR] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
     #define FLOGGING_INTERNAL_METRIC(msg_fmt, ...) do { \
         if (flogging::GetActiveBackend() == flogging::BackendType::Quill) { \
-            QUILL_LOG_INFO(flogging::get_metrics_logger(), msg_fmt __VA_OPT__(,) __VA_ARGS__); \
+            QUILL_LOG_INFO(flogging::get_metrics_logger(), FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__); \
         } else if (flogging::g_metrics_log_level <= flogging::LogLevel::Info) { \
-            flogging::DispatchMetric(fmt::format("[METRIC] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchMetric(fmt::format("[METRIC] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
@@ -124,31 +131,31 @@ namespace flogging {
     // fmt::format implementations
     #define FLOGGING_INTERNAL_INFO(msg_fmt, ...) do { \
         if (flogging::g_active_log_level <= flogging::LogLevel::Info) { \
-            flogging::DispatchLog(flogging::LogLevel::Info, fmt::format("[INFO] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Info, fmt::format("[INFO] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
     #define FLOGGING_INTERNAL_DEBUG(msg_fmt, ...) do { \
         if (flogging::g_active_log_level <= flogging::LogLevel::Debug) { \
-            flogging::DispatchLog(flogging::LogLevel::Debug, fmt::format("[DEBUG] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Debug, fmt::format("[DEBUG] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
     #define FLOGGING_INTERNAL_WARN(msg_fmt, ...) do { \
         if (flogging::g_active_log_level <= flogging::LogLevel::Warn) { \
-            flogging::DispatchLog(flogging::LogLevel::Warn, fmt::format("[WARN] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Warn, fmt::format("[WARN] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
     #define FLOGGING_INTERNAL_ERROR(msg_fmt, ...) do { \
         if (flogging::g_active_log_level <= flogging::LogLevel::Error) { \
-            flogging::DispatchLog(flogging::LogLevel::Error, fmt::format("[ERROR] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchLog(flogging::LogLevel::Error, fmt::format("[ERROR] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
     #define FLOGGING_INTERNAL_METRIC(msg_fmt, ...) do { \
         if (flogging::g_metrics_log_level <= flogging::LogLevel::Info) { \
-            flogging::DispatchMetric(fmt::format("[METRIC] " msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
+            flogging::DispatchMetric(fmt::format("[METRIC] " FLOG_APP_PREFIX msg_fmt __VA_OPT__(,) __VA_ARGS__)); \
         } \
     } while(0)
 
