@@ -51,7 +51,7 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN" "$ORIGIN/../lib")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 set(CMAKE_SKIP_RPATH FALSE)
-set(CMAKE_MACOSX_RPATH FALSE)
+set(CMAKE_MACOSX_RPATH TRUE)
 
 
 # --- Library Setup Variables -------------------------------------
@@ -217,15 +217,28 @@ install(
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FLogging
 )
 
-# Generate Config file
+
 include(CMakePackageConfigHelpers)
+
+# Version File 
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+# Config File
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfig.cmake "
 include(CMakeFindDependencyMacro)
 find_dependency(Threads)
 find_dependency(fmt)
 include(\"\${CMAKE_CURRENT_LIST_DIR}/FLoggingTargets.cmake\")
 ")
+
+# Install Both
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfig.cmake
+    FILES 
+        ${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/FLoggingConfigVersion.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FLogging
 )
