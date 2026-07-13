@@ -98,6 +98,9 @@ list(APPEND FLOGGING_PUBLIC_LIBRARIES fmt::fmt)
 find_package(Boost REQUIRED)
 list(APPEND FLOGGING_PRIVATE_LIBRARIES Boost::headers)
 
+if(WIN32)
+    list(APPEND FLOGGING_PRIVATE_LIBRARIES ws2_32)
+endif()
 
 ## Quill: located in third_party/quill 
 if (FLOGGING_QUILL_BACKEND)
