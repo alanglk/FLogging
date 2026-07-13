@@ -77,6 +77,7 @@ namespace flogging {
 
 // --- Internal Macro Implementations ------------------------------
 #include <fmt/core.h>
+#include <fmt/format.h>
 #ifdef ENABLE_QUILL
     #define QUILL_DISABLE_NON_PREFIXED_MACROS
     #include <quill/Frontend.h>
