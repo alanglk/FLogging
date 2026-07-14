@@ -17,6 +17,7 @@ project(FLogging
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Check if FLogging is the main project or bundled via add_subdirectory
 set(FLOGGING_IS_MASTER_PROJECT OFF)
@@ -40,19 +41,32 @@ option(FLOGGING_TESTING         "Build tests" OFF)
 
 
 # --- Installation Variables --------------------------------------
+include(GNUInstallDirs)
 if(FLOGGING_IS_MASTER_PROJECT)
     # Install tree inside the build dir by default <build>/dist
     if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-      set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/dist" CACHE PATH "Install path" FORCE)
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/dist" CACHE PATH "Install path" FORCE)
     endif()
 endif()
 
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-set(CMAKE_INSTALL_RPATH "$ORIGIN" "$ORIGIN/../lib")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 set(CMAKE_SKIP_RPATH FALSE)
-set(CMAKE_MACOSX_RPATH TRUE)
 
+# OS-Specific Dynamic Linking Paths (RPATH)
+if(APPLE)
+    set(CMAKE_MACOSX_RPATH TRUE)
+    set(CMAKE_INSTALL_RPATH "@executable_path" "@executable_path/../lib")
+else()
+    set(CMAKE_MACOSX_RPATH FALSE)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN" "$ORIGIN/../lib")
+endif()
+
+# Force MSVC to use the modern preprocessor
+#   (variadic macros support)
+if(MSVC)
+    add_compile_options(/Zc:preprocessor)
+endif()
 
 # --- Library Setup Variables -------------------------------------
 set(FLOGGING_TYPE STATIC)                # STATIC or SHARED
@@ -98,9 +112,6 @@ list(APPEND FLOGGING_PUBLIC_LIBRARIES fmt::fmt)
 find_package(Boost REQUIRED)
 list(APPEND FLOGGING_PRIVATE_LIBRARIES Boost::headers)
 
-if(WIN32)
-    list(APPEND FLOGGING_PRIVATE_LIBRARIES ws2_32)
-endif()
 
 ## Quill: located in third_party/quill 
 if (FLOGGING_QUILL_BACKEND)
